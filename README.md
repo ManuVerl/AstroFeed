@@ -2,7 +2,11 @@
 
 **Application de suivi des événements astronomiques et radioastronomiques**
 
-> Écrite en Rust · Interface graphique egui/eframe · Linux & Windows
+> Écrite en Rust avec l'aide d'IBM Bob · Interface graphique egui/eframe · Linux & Windows
+
+![light mode](./img/light.png)
+
+![dark mode](./img/dark.png)
 
 ---
 
