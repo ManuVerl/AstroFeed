@@ -194,7 +194,7 @@ fn make_planet_event(
         equipment: None,
         source: "Planets (JPL Horizons)".to_string(),
         description: Some(format!(
-            "Élévation max ~{:.0}°  —  visible depuis votre position",
+            "Max elevation ~{:.0}°  —  visible from your position",
             el
         )),
         freq_min_mhz: None,

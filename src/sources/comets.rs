@@ -94,22 +94,22 @@ fn parse_mpc_comets(
         }
 
         let equipment = if est_mag < 6.0 {
-            "À l'œil nu"
+            "Naked eye"
         } else if est_mag < 9.0 {
-            "Jumelles 10×50 ou plus"
+            "Binoculars 10×50 or larger"
         } else {
-            "Télescope recommandé"
+            "Telescope recommended"
         };
 
         let desc = format!(
-            "Périhélie le {}/{}/{} — dist. {:.2} UA — mag estimée {:.1}",
+            "Perihelion {}/{}/{} — dist. {:.2} AU — est. mag {:.1}",
             peri_day, peri_month, peri_year, q_au, est_mag
         );
 
         // 1. Astronomical event (visual observation)
         events.push(Event {
             id: Uuid::new_v4(),
-            title: format!("Comète {} visible", name),
+            title: format!("Comet {} visible", name),
             category: Category::Astronomical,
             event_type: EventType::Astronomical(AstronomicalType::CometVisible),
             start_time: vis_start,
@@ -131,16 +131,16 @@ fn parse_mpc_comets(
             let _ = position; // position would be used for direction when ephemeris is available
             events.push(Event {
                 id: Uuid::new_v4(),
-                title: format!("Transit radio comète {} (OH/H₂O)", name),
+                title: format!("Comet {} radio transit (OH/H₂O)", name),
                 category: Category::RadioAstronomical,
                 event_type: EventType::Radio(RadioAstronomicalType::CometTransit),
                 start_time: radio_start,
                 end_time: radio_end,
                 sky_position: None,
-                equipment: Some("Récepteur 1.6–22 GHz, antenne directive".to_string()),
+                equipment: Some("Receiver 1.6–22 GHz, directional antenna".to_string()),
                 source: "Comets (MPC)".to_string(),
                 description: Some(format!(
-                    "{desc}  |  Écouter : raie OH 1665/1667 MHz, H₂O maser 22235 MHz"
+                    "{desc}  |  Listen: OH line 1665/1667 MHz, H₂O maser 22235 MHz"
                 )),
                 freq_min_mhz: Some(1665.0),
                 freq_max_mhz: Some(22235.0),

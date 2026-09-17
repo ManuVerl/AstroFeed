@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 /// Icon representing a position.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 pub enum PositionIcon {
+    #[default]
     Home,
     Observatory,
     Campsite,
@@ -10,16 +11,33 @@ pub enum PositionIcon {
     Mountain,
 }
 
-#[allow(dead_code)]
 impl PositionIcon {
-    pub fn label(&self) -> &'static str {
+    /// Just the emoji glyph — used in lists, the position selector combobox, and the sidebar.
+    pub fn emoji(&self) -> &'static str {
         match self {
-            PositionIcon::Home => "🏠 Domicile",
-            PositionIcon::Observatory => "🔭 Observatoire",
-            PositionIcon::Campsite => "🏕️ Terrain",
-            PositionIcon::Station => "📡 Station",
-            PositionIcon::Mountain => "🏔️ Montagne",
+            PositionIcon::Home       => "🏠",
+            PositionIcon::Observatory => "🔭",
+            PositionIcon::Campsite   => "🏕",
+            PositionIcon::Station    => "📡",
+            PositionIcon::Mountain   => "🏔",
         }
+    }
+
+    /// Emoji + English description — used only inside the icon-picker dropdown.
+    pub fn picker_label(&self) -> &'static str {
+        match self {
+            PositionIcon::Home       => "🏠 Home",
+            PositionIcon::Observatory => "🔭 Observatory",
+            PositionIcon::Campsite   => "🏕 Field / Campsite",
+            PositionIcon::Station    => "📡 Station",
+            PositionIcon::Mountain   => "🏔 Mountain",
+        }
+    }
+
+    /// Kept for backwards-compatibility with any call site that still uses label().
+    /// Returns the same as emoji().
+    pub fn label(&self) -> &'static str {
+        self.emoji()
     }
 
     pub fn all() -> &'static [PositionIcon] {
@@ -65,6 +83,6 @@ impl Position {
 
     #[allow(dead_code)]
     pub fn display_label(&self) -> String {
-        format!("{} {} ({:.4}°, {:.4}°)", self.icon.label(), self.name, self.latitude, self.longitude)
+        format!("{} {} ({:.4}°, {:.4}°)", self.icon.emoji(), self.name, self.latitude, self.longitude)
     }
 }

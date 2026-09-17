@@ -124,10 +124,10 @@ fn build_ariss_event(title: &str, description: &str, pub_date: &str) -> Option<E
         start_time: dt,
         end_time: end,
         sky_position: None, // would need TLE calculation for exact pass
-        equipment: Some("Récepteur FM ou SDR — 145.800 MHz (downlink ISS)".to_string()),
+        equipment: Some("FM receiver or SDR — 145.800 MHz (ISS downlink)".to_string()),
         source: "ISS Radio (ARISS RSS)".to_string(),
         description: Some(if clean_desc.is_empty() {
-            "Contact radio ARISS entre l'ISS et une école. Écoute libre sur 145.800 MHz."
+            "ARISS radio contact between the ISS and a school. Free listening on 145.800 MHz."
                 .to_string()
         } else {
             format!("{} | Downlink: 145.800 MHz", truncate(&clean_desc, 200))

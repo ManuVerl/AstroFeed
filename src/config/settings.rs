@@ -1,9 +1,27 @@
+use crate::i18n::Lang;
 use crate::model::position::{Position, PositionIcon};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-const CONFIG_FILE: &str = "astrofeed_config.toml";
+const CONFIG_FILE: &str = "cosmic_beacon_config.toml";
+
+/// Visual theme.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub enum Theme {
+    #[default]
+    Dark,
+    Light,
+    Teal,
+    Pink,
+    Navy,
+}
+
+impl Theme {
+    pub fn is_dark_based(&self) -> bool {
+        !matches!(self, Theme::Light)
+    }
+}
 
 /// How often events are automatically refreshed.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -20,25 +38,39 @@ pub enum UpdateFrequency {
 /// Persisted application settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Settings {
-    pub dark_mode: bool,
+    #[serde(default)]
+    pub theme: Theme,
     pub update_frequency: UpdateFrequency,
     pub positions: Vec<Position>,
+    /// Index of the last active position (restored on next launch)
+    #[serde(default)]
+    pub active_position_index: usize,
     /// UTC timestamp of the last successful refresh
     pub last_refresh: Option<DateTime<Utc>>,
+    /// UI language; defaults to system locale
+    #[serde(default)]
+    pub language: Lang,
+    /// Names of external data sources that the user has disabled.
+    /// An empty vec means all sources are active (default behaviour).
+    #[serde(default)]
+    pub disabled_sources: Vec<String>,
 }
 
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            dark_mode: true,
+            theme: Theme::Dark,
             update_frequency: UpdateFrequency::OnStartup,
             positions: vec![Position::new_manual(
-                "Domicile",
+                "Home",
                 PositionIcon::Home,
                 48.8566,
                 2.3522,
             )],
+            active_position_index: 0,
             last_refresh: None,
+            language: Lang::detect_system(),
+            disabled_sources: Vec::new(),
         }
     }
 }
@@ -47,7 +79,7 @@ impl Settings {
     fn config_path() -> PathBuf {
         dirs::config_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("astrofeed")
+            .join("cosmic-beacon")
             .join(CONFIG_FILE)
     }
 

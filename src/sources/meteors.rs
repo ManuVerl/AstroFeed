@@ -23,17 +23,17 @@ struct ShowerEntry {
 }
 
 const SHOWERS: &[ShowerEntry] = &[
-    ShowerEntry { name: "Quadrantides",           peak_month: 1,  peak_day: 4,  days_before: 3,  days_after: 2,  zhr: 120, parent: "Astéroïde 2003 EH1" },
-    ShowerEntry { name: "Lyricides",              peak_month: 4,  peak_day: 22, days_before: 3,  days_after: 2,  zhr: 18,  parent: "Comète Thatcher" },
-    ShowerEntry { name: "Eta-Aquariides",         peak_month: 5,  peak_day: 6,  days_before: 5,  days_after: 5,  zhr: 50,  parent: "Comète Halley" },
-    ShowerEntry { name: "Delta-Aquariides Sud",   peak_month: 7,  peak_day: 30, days_before: 10, days_after: 10, zhr: 25,  parent: "Comète 96P/Machholz" },
-    ShowerEntry { name: "Perséides",              peak_month: 8,  peak_day: 13, days_before: 5,  days_after: 5,  zhr: 100, parent: "Comète 109P/Swift-Tuttle" },
-    ShowerEntry { name: "Orionides",              peak_month: 10, peak_day: 21, days_before: 5,  days_after: 5,  zhr: 20,  parent: "Comète Halley" },
-    ShowerEntry { name: "Taurides Sud",           peak_month: 11, peak_day: 5,  days_before: 15, days_after: 15, zhr: 5,   parent: "Comète 2P/Encke" },
-    ShowerEntry { name: "Taurides Nord",          peak_month: 11, peak_day: 12, days_before: 15, days_after: 15, zhr: 5,   parent: "Comète 2P/Encke" },
-    ShowerEntry { name: "Léonides",               peak_month: 11, peak_day: 17, days_before: 3,  days_after: 3,  zhr: 15,  parent: "Comète 55P/Tempel-Tuttle" },
-    ShowerEntry { name: "Géminides",              peak_month: 12, peak_day: 14, days_before: 4,  days_after: 4,  zhr: 150, parent: "Astéroïde 3200 Phaéton" },
-    ShowerEntry { name: "Ursides",                peak_month: 12, peak_day: 22, days_before: 2,  days_after: 2,  zhr: 10,  parent: "Comète 8P/Tuttle" },
+    ShowerEntry { name: "Quadrantids",          peak_month: 1,  peak_day: 4,  days_before: 3,  days_after: 2,  zhr: 120, parent: "Asteroid 2003 EH1" },
+    ShowerEntry { name: "Lyrids",               peak_month: 4,  peak_day: 22, days_before: 3,  days_after: 2,  zhr: 18,  parent: "Comet Thatcher" },
+    ShowerEntry { name: "Eta-Aquariids",         peak_month: 5,  peak_day: 6,  days_before: 5,  days_after: 5,  zhr: 50,  parent: "Comet Halley" },
+    ShowerEntry { name: "Delta-Aquariids South", peak_month: 7,  peak_day: 30, days_before: 10, days_after: 10, zhr: 25,  parent: "Comet 96P/Machholz" },
+    ShowerEntry { name: "Perseids",             peak_month: 8,  peak_day: 13, days_before: 5,  days_after: 5,  zhr: 100, parent: "Comet 109P/Swift-Tuttle" },
+    ShowerEntry { name: "Orionids",             peak_month: 10, peak_day: 21, days_before: 5,  days_after: 5,  zhr: 20,  parent: "Comet Halley" },
+    ShowerEntry { name: "Taurids South",        peak_month: 11, peak_day: 5,  days_before: 15, days_after: 15, zhr: 5,   parent: "Comet 2P/Encke" },
+    ShowerEntry { name: "Taurids North",        peak_month: 11, peak_day: 12, days_before: 15, days_after: 15, zhr: 5,   parent: "Comet 2P/Encke" },
+    ShowerEntry { name: "Leonids",              peak_month: 11, peak_day: 17, days_before: 3,  days_after: 3,  zhr: 15,  parent: "Comet 55P/Tempel-Tuttle" },
+    ShowerEntry { name: "Geminids",             peak_month: 12, peak_day: 14, days_before: 4,  days_after: 4,  zhr: 150, parent: "Asteroid 3200 Phaethon" },
+    ShowerEntry { name: "Ursids",               peak_month: 12, peak_day: 22, days_before: 2,  days_after: 2,  zhr: 10,  parent: "Comet 8P/Tuttle" },
 ];
 
 /// Returns meteor shower events spanning ±1 month from today up to +1 year.
@@ -65,16 +65,16 @@ pub async fn fetch(
             }
 
             let equipment = if s.zhr >= 50 {
-                "À l'œil nu — Excellent spectacle"
+                "Naked eye — excellent show"
             } else if s.zhr >= 20 {
-                "À l'œil nu"
+                "Naked eye"
             } else {
-                "À l'œil nu — activité modérée"
+                "Naked eye — moderate activity"
             };
 
             events.push(Event {
                 id: Uuid::new_v4(),
-                title: format!("Pluie de météores — {}", s.name),
+                title: format!("Meteor shower — {}", s.name),
                 category: Category::Astronomical,
                 event_type: EventType::Astronomical(AstronomicalType::MeteorShower),
                 start_time: start,
@@ -83,7 +83,7 @@ pub async fn fetch(
                 equipment: Some(equipment.to_string()),
                 source: "Meteor Showers (IMO calendar)".to_string(),
                 description: Some(format!(
-                    "Pic le {}/{} — ZHR max ~{}  |  Corps parent : {}",
+                    "Peak on {}/{} — max ZHR ~{}  |  Parent body: {}",
                     peak.day(), peak.month(), s.zhr, s.parent
                 )),
                 freq_min_mhz: None,

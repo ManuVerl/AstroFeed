@@ -1,8 +1,8 @@
-# AstroFeed
+# Cosmic Beacon
 
-**Application de suivi des événements astronomiques et radioastronomiques**
+**Astronomical & radio-astronomical event tracker**
 
-> Écrite en Rust avec l'aide d'IBM Bob · Interface graphique egui/eframe · Linux & Windows
+> Written in Rust with IBM Bob · egui/eframe UI · Linux & Windows
 
 ![light mode](./img/light.png)
 
@@ -10,54 +10,102 @@
 
 ---
 
-## Fonctionnalités
+## Features
 
-- 🔭 Suivi des **événements astronomiques** : survols ISS, planètes visibles, pluies de météores, comètes
-- 📡 Suivi des **événements radioastronomiques** : contacts radio ARISS, transit solaire, comètes radio
-- 📍 Gestion de **plusieurs positions** géographiques (nom, icône, lat/lon GPS ou manuelle)
-- 🔄 Mise à jour automatique depuis des **sources publiques gratuites** (Open-Notify, JPL Horizons, ARISS…)
-- 🌑 **Thème sombre** par défaut (idéal pour les sessions d'observation nocturne)
-- 📋 Rapport de synchronisation des sources
+- 🔭 **Astronomical events**: ISS flybys, visible planets, meteor showers, observable comets
+- 📡 **Radio-astronomical events**: ARISS ISS radio contacts, solar transit, Milky Way (Galactic Centre) transit
+- 📍 **Multiple observer positions**: name, icon, lat/lon (manual entry)
+- 🔄 **Automatic refresh** from free public data sources (CelesTrak TLE, JPL Horizons, IMO, MPC, ARISS)
+- 🎨 **5 colour themes**: Dark · Light · Teal · Pink · Navy (X11-inspired)
+- 🌍 **6 UI languages**: French · English · Spanish · Portuguese · German · Italian (auto-detected from system locale, saved across sessions)
+- ⏱ **Temporal navigation bar**: jump to *Now* or seek to any date/time directly from the event list
+- 📋 **Sync report** window showing per-source status and last update time
+- 🌅 **Sidebar ephemeris**: real-time clock, sun arc widget (sunrise/sunset), moon phase disc
 
-## Prérequis
+---
 
-- Rust stable ≥ 1.75 ([installer rustup](https://rustup.rs))
-- Linux : paquets `libgtk-3-dev`, `libxcb-*` (pour egui/eframe)
-- Windows : Visual Studio Build Tools (MSVC)
+## Requirements
 
-## Compilation
+- Rust stable ≥ 1.75 ([install rustup](https://rustup.rs))
+- **Linux**: packages `libgtk-3-dev`, `libxcb-*` (required by egui/eframe)
+- **Windows**: Visual Studio Build Tools (MSVC toolchain)
+
+---
+
+## Build
 
 ```bash
-# Debug
+# Debug build
 cargo build
 
-# Release
+# Optimised release build
 cargo build --release
 ```
 
-## Lancement
+The release binary is written to `target/release/cosmic-beacon` (Linux) or `target\release\cosmic-beacon.exe` (Windows).
+
+---
+
+## Run
 
 ```bash
 cargo run --release
 ```
 
-## Structure du projet
+---
+
+## Configuration
+
+Settings are persisted automatically at `{config_dir}/cosmic-beacon/cosmic_beacon_config.toml`:
+
+| Platform | Path |
+|----------|------|
+| Windows  | `%APPDATA%\cosmic-beacon\cosmic_beacon_config.toml` |
+| Linux    | `~/.config/cosmic-beacon/cosmic_beacon_config.toml` |
+| macOS    | `~/Library/Application Support/cosmic-beacon/cosmic_beacon_config.toml` |
+
+Saved settings include: selected theme, UI language, observer positions, and update frequency.
+
+---
+
+## Project layout
 
 ```
 src/
-├── main.rs          # Point d'entrée
-├── app.rs           # État global (AppState)
-├── ui/              # Composants d'interface
-├── model/           # Structures de données
-├── sources/         # Connecteurs sources externes
-├── config/          # Persistance configuration TOML
-└── utils/           # Utilitaires (géo, calculs astronomiques)
+├── main.rs          # Entry point, Tokio runtime, eframe bootstrap
+├── app.rs           # Global application state (CosmicBeaconApp)
+├── i18n.rs          # Translations & date/time localisation (6 languages)
+├── ui/              # UI components (egui panels and windows)
+│   ├── main_window.rs
+│   ├── event_list.rs    # Event list + temporal navigation bar
+│   ├── settings.rs
+│   ├── positions.rs
+│   ├── sidebar_info.rs  # Clock, sun arc, moon phase widgets
+│   ├── sync_report.rs
+│   ├── about.rs
+│   └── theme.rs         # 5 theme definitions
+├── model/           # Data structures (Event, Position, …)
+├── sources/         # External data connectors
+│   ├── manager.rs
+│   ├── iss_passes.rs
+│   ├── planets.rs
+│   ├── meteors.rs
+│   ├── comets.rs
+│   ├── solar_transit.rs
+│   ├── iss_radio.rs
+│   └── milky_way.rs     # Galactic Centre meridian transit
+├── config/          # TOML settings persistence
+└── utils/           # Geo helpers, astronomical calculations
 ```
 
-## Spécification
+---
 
-Voir [SPEC.md](./SPEC.md) pour la spécification fonctionnelle et technique complète.
+## Specification
 
-## Licence
+See [SPEC.md](./SPEC.md) for the full functional and technical specification.
+
+---
+
+## License
 
 MIT

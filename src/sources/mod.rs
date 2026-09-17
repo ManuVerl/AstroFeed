@@ -5,3 +5,4 @@ pub mod meteors;
 pub mod comets;
 pub mod solar_transit;
 pub mod iss_radio;
+pub mod milky_way;

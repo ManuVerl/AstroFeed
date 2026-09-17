@@ -27,6 +27,7 @@ pub enum RadioAstronomicalType {
     IssRadio,
     SolarTransit,
     CometTransit,
+    MilkyWayTransit,
     Other(String),
 }
 

@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod i18n;
 mod model;
 mod sources;
 mod ui;
@@ -128,7 +129,7 @@ fn main() -> eframe::Result<()> {
 
     let options = NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("AstroFeed  ·  by Emmanuel V. with BOB")
+            .with_title("Cosmic Beacon  ·  by Emmanuel V. with BOB")
             .with_inner_size([1024.0, 700.0])
             .with_min_inner_size([640.0, 480.0])
             .with_icon(icon),
@@ -136,7 +137,7 @@ fn main() -> eframe::Result<()> {
     };
 
     let result = eframe::run_native(
-        "AstroFeed  ·  by Emmanuel V. with BOB",
+        "Cosmic Beacon  ·  by Emmanuel V. with BOB",
         options,
         Box::new(|cc| Box::new(app::AstroFeedApp::new(cc))),
     );

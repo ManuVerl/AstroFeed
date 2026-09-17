@@ -1,2 +1,2 @@
 pub mod settings;
-pub use settings::{Settings, UpdateFrequency};
+pub use settings::{Settings, Theme, UpdateFrequency};

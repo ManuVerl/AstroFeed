@@ -1,6 +1,6 @@
 [package]
-name = "astrofeed"
-version = "0.1.0"
+name = "cosmic-beacon"
+version = "0.2.0"
 edition = "2021"
 authors = []
 description = "Astronomical & radio-astronomical event tracker"
@@ -8,7 +8,7 @@ license = "MIT"
 rust-version = "1.75"
 
 [[bin]]
-name = "astrofeed"
+name = "cosmic-beacon"
 path = "src/main.rs"
 
 [dependencies]

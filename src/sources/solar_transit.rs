@@ -33,20 +33,20 @@ pub async fn fetch(
             events.push(Event {
                 id: Uuid::new_v4(),
                 title: format!(
-                    "Transit solaire — {:.0}° Az  {:.0}° Él  ({})",
+                    "Solar transit — {:.0}° Az  {:.0}° El  ({})",
                     az, el,
-                    transit.format("%d/%m/%Y")
+                    transit.format("%Y-%m-%d")
                 ),
                 category: Category::RadioAstronomical,
                 event_type: EventType::Radio(RadioAstronomicalType::SolarTransit),
                 start_time: event_start,
                 end_time: event_end,
                 sky_position: Some(SkyCoord { azimuth_deg: az, elevation_deg: el }),
-                equipment: Some("Antenne/parabole + récepteur 1–10 GHz".to_string()),
+                equipment: Some("Dish antenna + receiver 1–10 GHz".to_string()),
                 source: "Solar Transit (calc. local)".to_string(),
                 description: Some(format!(
-                    "Passage du Soleil au méridien à {:.0}° d'élévation. \
-                     Écoute recommandée : 1.4 GHz (HI), 2.8 GHz (flux F10.7), 10 GHz.",
+                    "Sun crossing the meridian at {:.0}° elevation. \
+                     Recommended frequencies: 1.4 GHz (HI), 2.8 GHz (F10.7 flux), 10 GHz.",
                     el
                 )),
                 freq_min_mhz: Some(1400.0),

@@ -9,25 +9,46 @@ use uuid::Uuid;
 const CELESTRAK_ISS_URL: &str =
     "https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=TLE";
 
+/// Parse a TLE text body that is either:
+///   3-line: "NAME\n1 …\n2 …"
+///   2-line: "1 …\n2 …"  (no name line)
+/// Returns (optional_name, tle_line1, tle_line2).
+fn parse_tle_lines(text: &str) -> Option<(Option<String>, &str, &str)> {
+    let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+
+    // Identify TLE lines by their leading digit ('1' or '2')
+    let tle1_idx = lines.iter().position(|l| l.starts_with('1') && l.len() >= 69)?;
+    let tle2_idx = lines.iter().position(|l| l.starts_with('2') && l.len() >= 69)?;
+
+    if tle2_idx <= tle1_idx {
+        return None; // line 2 must come after line 1
+    }
+
+    let name = if tle1_idx > 0 {
+        Some(lines[tle1_idx - 1].to_string())
+    } else {
+        None
+    };
+
+    Some((name, lines[tle1_idx], lines[tle2_idx]))
+}
+
 /// Fetches ISS TLE from Celestrak and computes passes over the given position
 /// for the next 10 days.
 pub async fn fetch(
     position: &Position,
 ) -> Result<Vec<Event>, Box<dyn std::error::Error + Send + Sync>> {
     // Download TLE (two-line element set)
-    let tle_text = reqwest::get(CELESTRAK_ISS_URL).await?.text().await?;
-    let lines: Vec<&str> = tle_text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    // CelesTrak requires a User-Agent header; requests without one may get a 403.
+    let client = reqwest::Client::builder()
+        .user_agent("CosmicBeacon/0.2.0 (contact: cosmic-beacon@users)")
+        .build()?;
+    let tle_text = client.get(CELESTRAK_ISS_URL).send().await?.text().await?;
 
-    if lines.len() < 3 {
-        return Err("Could not parse TLE from Celestrak (too few lines)".into());
-    }
+    let (name, line1, line2) = parse_tle_lines(&tle_text)
+        .ok_or("Could not locate TLE lines in Celestrak response")?;
 
-    // Lines: [0] name, [1] TLE line 1, [2] TLE line 2
-    let elements = Elements::from_tle(
-        Some(lines[0].to_string()),
-        lines[1].as_bytes(),
-        lines[2].as_bytes(),
-    )?;
+    let elements = Elements::from_tle(name, line1.as_bytes(), line2.as_bytes())?;
 
     let constants = sgp4::Constants::from_elements(&elements)?;
 
@@ -79,9 +100,9 @@ pub async fn fetch(
                 events.push(Event {
                     id: Uuid::new_v4(),
                     title: format!(
-                        "Survol ISS — élév. max {:.0}°  ({})",
+                        "ISS Flyover — max elev. {:.0}°  ({})",
                         max_elevation,
-                        pass_start.format("%d/%m/%Y %H:%M UTC")
+                        pass_start.format("%Y-%m-%d %H:%M UTC")
                     ),
                     category: Category::Astronomical,
                     event_type: EventType::Astronomical(AstronomicalType::IssFlyover),
@@ -91,10 +112,10 @@ pub async fn fetch(
                         azimuth_deg: max_az,
                         elevation_deg: max_elevation,
                     }),
-                    equipment: Some("À l'œil nu".to_string()),
+                    equipment: Some("Naked eye".to_string()),
                     source: "ISS Passes (Celestrak TLE)".to_string(),
                     description: Some(format!(
-                        "Durée ~{}min  |  Élév. max {:.0}°",
+                        "Duration ~{}min  |  Max elev. {:.0}°",
                         (pass_end - pass_start).num_minutes(),
                         max_elevation
                     )),

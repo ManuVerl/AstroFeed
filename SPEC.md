@@ -1,313 +1,453 @@
-# AstroFeed — Spécification fonctionnelle et technique
+# Cosmic Beacon — Functional & Technical Specification
 
-> Version : 0.1.0-draft  
-> Date : 2025  
-> Statut : **Draft**
-
----
-
-## 1. Présentation
-
-**AstroFeed** est une application de bureau multiplateforme (Linux, Windows) écrite en **Rust**, permettant de suivre et d'afficher les événements **astronomiques** et **radioastronomiques** visibles ou audibles depuis une ou plusieurs positions géographiques définies par l'utilisateur.
+> Version: 0.2.0
+> Date: 2025
+> Status: **Active**
 
 ---
 
-## 2. Objectifs
+## 1. Overview
 
-| # | Objectif |
-|---|----------|
-| 1 | Afficher les événements astronomiques et radioastronomiques à venir et passés pour une position donnée |
-| 2 | Permettre la gestion de plusieurs positions nommées et géolocalisées |
-| 3 | Récupérer automatiquement les données depuis des sources publiques et gratuites |
-| 4 | Rester utilisable (UI non bloquée) même si les sources externes sont indisponibles |
-| 5 | Proposer un paramétrage minimal (thème, fréquence de mise à jour) |
+**Cosmic Beacon** is a cross-platform desktop application (Linux, Windows) written in **Rust** that tracks and displays **astronomical** and **radio-astronomical** events visible or audible from one or more user-defined geographic positions.
+
+The application is built with the **egui/eframe** immediate-mode UI framework and relies entirely on free, open data sources. All network calls run asynchronously in the background; the UI remains fully responsive at all times.
 
 ---
 
-## 3. Fonctionnalités
+## 2. Goals
 
-### 3.1 Gestion des positions
+| # | Goal |
+|---|------|
+| 1 | Display upcoming and past astronomical/radio-astronomical events for a given position |
+| 2 | Support multiple named, geo-located observer positions |
+| 3 | Automatically fetch data from free public APIs |
+| 4 | Stay responsive (UI never blocked) even when external sources are unavailable |
+| 5 | Provide minimal but complete settings: theme, language, update frequency |
+| 6 | Fully internationalised: 6 UI languages, localised date/time formatting |
 
-Une **position** est caractérisée par :
+---
 
-| Champ | Type | Description |
+## 3. Features
+
+### 3.1 Observer Positions
+
+A **position** is described by:
+
+| Field | Type | Description |
 |-------|------|-------------|
-| `name` | `String` | Nom libre (ex : « Domicile », « Observatoire ») |
-| `icon` | `Enum` | Icône parmi une sélection prédéfinie : 🏠 Maison, 🔭 Observatoire, 🏕️ Terrain, 📡 Station, 🏔️ Montagne |
-| `latitude` | `f64` | Latitude en degrés décimaux (−90 … +90) |
-| `longitude` | `f64` | Longitude en degrés décimaux (−180 … +180) |
-| `acquisition` | `Enum` | `GPS` (position automatique du poste) ou `Manual` (saisie clavier) |
+| `name` | `String` | Free-text name (e.g. "Home", "Observatory") |
+| `icon` | `Enum` | Icon from a predefined set: 🏠 Home, 🔭 Observatory, 🏕 Field, 📡 Station, 🏔 Mountain |
+| `latitude` | `f64` | Decimal degrees (−90 … +90) |
+| `longitude` | `f64` | Decimal degrees (−180 … +180) |
+| `acquisition` | `Enum` | `GPS` (automatic) or `Manual` (keyboard entry) |
 
-- L'utilisateur peut enregistrer **n** positions.
-- Une position est sélectionnée comme **position active** pour le calcul des événements.
-- La suppression d'une position active redirige vers une autre position ou demande d'en créer une.
+- The user may store **n** positions.
+- One position is designated as the **active position** used for event computation.
+- Deleting the active position redirects to the next available position.
 
-### 3.2 Catalogue des événements
+### 3.2 Event Catalogue
 
-Chaque événement possède les attributs communs suivants :
+Every event carries the following common fields:
 
-| Champ | Type | Description |
+| Field | Type | Description |
 |-------|------|-------------|
-| `id` | `Uuid` | Identifiant unique |
-| `title` | `String` | Intitulé de l'événement |
-| `category` | `Enum` | `Astronomical` 🔭 ou `RadioAstronomical` 📡 |
-| `event_type` | `Enum` | Sous-type (voir §3.2.1 et §3.2.2) |
-| `start_time` | `DateTime<Utc>` | Début de l'événement (UTC) |
-| `end_time` | `DateTime<Utc>` | Fin de l'événement (UTC) |
-| `sky_position` | `SkyCoord` | Azimut + élévation au-dessus de la position |
-| `equipment` | `Option<String>` | Matériel suggéré (ex : « télescope 150mm ») |
-| `source` | `String` | Identifiant de la source externe ayant fourni l'événement |
-| `description` | `Option<String>` | Description courte facultative |
+| `id` | `Uuid` | Unique identifier |
+| `title` | `String` | Event label |
+| `category` | `Enum` | `Astronomical` 🔭 or `RadioAstronomical` 📡 |
+| `event_type` | `Enum` | Sub-type (see §3.2.1 and §3.2.2) |
+| `start_time` | `DateTime<Utc>` | Event start (UTC) |
+| `end_time` | `DateTime<Utc>` | Event end (UTC) |
+| `sky_position` | `SkyCoord` | Azimuth + elevation above the observer's horizon |
+| `equipment` | `Option<String>` | Suggested equipment (e.g. "150 mm telescope") |
+| `source` | `String` | Identifier of the external source |
+| `description` | `Option<String>` | Optional short description |
 
-Les événements **radioastronomiques** ajoutent :
+Radio-astronomical events additionally carry:
 
-| Champ | Type | Description |
+| Field | Type | Description |
 |-------|------|-------------|
-| `freq_min_mhz` | `f64` | Fréquence basse en MHz |
-| `freq_max_mhz` | `f64` | Fréquence haute en MHz |
-| `listen_direction` | `Option<SkyCoord>` | Direction d'écoute (azimut/élévation) |
+| `freq_min_mhz` | `f64` | Lower frequency bound (MHz) |
+| `freq_max_mhz` | `f64` | Upper frequency bound (MHz) |
+| `listen_direction` | `Option<SkyCoord>` | Listening direction (azimuth/elevation) |
 
-#### 3.2.1 Événements astronomiques (`Astronomical` 🔭)
+#### 3.2.1 Astronomical Event Sub-types (`Astronomical` 🔭)
 
-| Sous-type | Description |
-|-----------|-------------|
-| `ISS_Flyover` | Survol de la position par l'ISS |
-| `CometVisible` | Passage d'une comète visible à l'œil nu ou au télescope |
-| `MeteorShower` | Pluie de météores notable |
-| `PlanetVisible` | Planète du système solaire visible |
-| `Other` | Tout autre événement notable |
+| Sub-type | Description |
+|----------|-------------|
+| `IssFlyover` | ISS pass over the observer position |
+| `CometVisible` | Comet visible to the naked eye or telescope |
+| `MeteorShower` | Notable meteor shower |
+| `PlanetVisible` | Solar-system planet above the horizon |
+| `Other` | Any other notable event |
 
-#### 3.2.2 Événements radioastronomiques (`RadioAstronomical` 📡)
+#### 3.2.2 Radio-Astronomical Event Sub-types (`RadioAstronomical` 📡)
 
-| Sous-type | Description |
-|-----------|-------------|
-| `ISS_Radio` | Programme de radiocommunication ARISS avec l'ISS |
-| `SolarTransit` | Transit du Soleil au-dessus de la position |
-| `CometTransit` | Transit d'une comète (fréquence + axe d'écoute) |
-| `Other` | Tout autre événement radio notable |
+| Sub-type | Description |
+|----------|-------------|
+| `IssRadio` | ARISS amateur radio contact with the ISS |
+| `SolarTransit` | Sun crossing the local meridian (best dish-pointing time) |
+| `CometTransit` | Comet radio transit (frequency + listening axis) |
+| `MilkyWayTransit` | Galactic Centre (Sgr A*) crossing the local meridian |
+| `Other` | Any other notable radio event |
 
-### 3.3 Fenêtre temporelle d'affichage
+### 3.3 Display Time Window
 
-| Sens | Durée |
-|------|-------|
-| Futur | Jusqu'à **+1 an** depuis aujourd'hui |
-| Passé | Jusqu'à **−1 mois** depuis aujourd'hui |
+| Direction | Duration |
+|-----------|----------|
+| Future | Up to **+1 year** from today |
+| Past | Up to **−1 month** from today |
 
-Les événements sont triés par **ordre chronologique croissant** (le prochain en haut).
+Events are sorted in **ascending chronological order**. On startup and after a refresh the list auto-scrolls to the first event at or after the current time.
 
-### 3.4 Sources externes de données
+### 3.4 Temporal Navigation Bar
 
-Les données sont acquises depuis des API publiques et gratuites. Le tableau ci-dessous liste les sources candidates (à confirmer/compléter à l'implémentation) :
+A persistent control bar sits above the event list:
 
-| Source | URL | Données fournies |
-|--------|-----|-----------------|
-| **Heavens-Above** | `https://www.heavens-above.com` | Survols ISS, planètes |
-| **NASA Spot the Station** | `https://spotthestation.nasa.gov` | Survols ISS (flux RSS) |
-| **Open-Notify ISS** | `http://api.open-notify.org/iss-pass.json` | Passes ISS |
-| **JPL Horizons** | `https://ssd.jpl.nasa.gov/api/horizons.api` | Éphémérides planètes, comètes |
-| **ARISS** | `https://www.ariss.org` | Contacts radio ISS (RSS) |
-| **IMO Meteor Calendar** | `https://www.imo.net` | Calendrier pluies de météores |
-| **Minor Planet Center** | `https://minorplanetcenter.net` | Comètes récentes |
+| Control | Behaviour |
+|---------|-----------|
+| **Now** button | Resets the time cursor to the current UTC time and triggers a scroll |
+| **Go to** date/time field | Accepts `DD/MM/YYYY HH:MM`, `DD.MM.YYYY HH:MM` (German) or `YYYY-MM-DD HH:MM` (ISO); scrolls the list to the target time on a valid parse |
+| Current cursor label | Right-aligned display of the active cursor time, updated every second |
 
-> **Règle impérative** : l'appel aux sources est effectué en tâche de fond (thread/async). L'UI reste responsive en permanence.
+### 3.5 External Data Sources
 
-#### 3.4.1 Rapport de synchronisation
+All network calls are executed asynchronously (Tokio). Each source has its own module under `src/sources/`.
 
-Un écran/panneau dédié (accessible via le menu ou une icône d'état) liste pour chaque source :
+| Source | URL / Method | Data provided |
+|--------|-------------|---------------|
+| **CelesTrak TLE** | `https://celestrak.org` | ISS TLE elements → pass prediction (SGP4) |
+| **NASA JPL Horizons** | `https://ssd.jpl.nasa.gov/api/horizons.api` | Planetary ephemerides |
+| **IMO Meteor Calendar** | `https://www.imo.net` | Meteor shower calendar |
+| **IAU Minor Planet Center** | `https://minorplanetcenter.net` | Observable comets |
+| **ARISS** | `https://www.ariss.org` (RSS) | ISS amateur radio contacts |
+| **Solar Transit** | Local calculation (NOAA algorithm) | Daily solar meridian transit |
+| **Milky Way Transit** | Local calculation (LST + Sgr A* coordinates) | Daily Galactic Centre meridian transit |
 
-| Champ | Description |
+> **Mandatory rule**: all source calls run in background tasks. The UI thread is never blocked.
+
+#### 3.5.1 Sync Report
+
+A dedicated window (menu or status-bar button) lists for each source:
+
+| Field | Description |
 |-------|-------------|
-| `source_name` | Nom de la source |
+| `source_name` | Source identifier |
 | `status` | `OK` ✅ / `Error` ❌ / `Pending` 🔄 |
-| `last_sync` | Date et heure de la dernière synchronisation réussie |
-| `error_message` | Message d'erreur le cas échéant |
+| `last_sync` | Timestamp of last successful sync (localised) |
+| `error_message` | Error description if applicable |
 
-### 3.5 Affichage des événements
+### 3.6 Sun Widget
 
-- **Vue liste** : liste chronologique avec icône de catégorie, titre, date/heure locale, position dans le ciel.
-- **Vue détail** : panneau latéral ou fenêtre modale affichant tous les champs de l'événement.
-- **Filtres** :
-  - Par catégorie : Astronomique 🔭 / Radioastronomique 📡 / Tous
-  - Par sous-type d'événement
-  - Par position (si plusieurs positions enregistrées)
-  - Passés / À venir / Tous
+The Sun widget is displayed at the bottom of the left sidebar whenever an active position is set. It provides real-time solar ephemeris data recomputed every second.
 
-### 3.6 Paramétrage
-
-| Paramètre | Valeurs possibles | Défaut |
-|-----------|------------------|--------|
-| Thème | `Dark` 🌑 / `Light` ☀️ | `Dark` |
-| Fréquence de mise à jour | `OnStartup` / `Weekly` / `Monthly` | `OnStartup` |
-| Position active | Une des positions enregistrées | Première créée |
-| Format d'heure | `UTC` / `Local` | `Local` |
-
----
-
-## 4. Architecture technique
-
-### 4.1 Langage et plateforme
-
-| Élément | Choix |
-|---------|-------|
-| Langage | **Rust** (édition 2021+) |
-| Cibles | `x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc` |
-| Toolchain | `stable` |
-
-### 4.2 Framework UI — analyse comparative
-
-Trois frameworks Rust sont candidats. Le choix final sera arrêté lors du démarrage de l'implémentation.
-
-| Framework | Avantages | Inconvénients | Score |
-|-----------|-----------|---------------|-------|
-| **egui / eframe** | Immédiat (immediate-mode), multiplateforme, léger, pas de dépendances système | Look natif limité, rendu OpenGL/wgpu | ⭐⭐⭐ |
-| **Tauri** | HTML/CSS/JS pour l'UI, webview natif, très actif | Dépendance webview OS, écosystème JS | ⭐⭐ |
-| **Slint** | DSL déclaratif, animations, look moderne, embarqué-friendly | Moins de composants prêts, DSL à apprendre | ⭐⭐⭐ |
-
-> **Recommandation initiale : `egui/eframe`** pour la rapidité de prototypage et l'absence de dépendances système lourdes.  
-> À réévaluer si des besoins de rendu complexe (carte du ciel, graphiques polaires) émergent.
-
-### 4.3 Crates principales envisagées
-
-| Crate | Usage |
-|-------|-------|
-| `eframe` / `egui` | Framework UI |
-| `tokio` | Runtime async pour les appels réseau |
-| `reqwest` | Client HTTP async |
-| `serde` / `serde_json` | Sérialisation/désérialisation |
-| `chrono` | Manipulation des dates et heures |
-| `uuid` | Génération d'identifiants uniques |
-| `dirs` | Chemins de configuration utilisateur cross-platform |
-| `toml` | Persistance de la configuration |
-| `astro` ou `sgp4` | Calculs orbitaux (passes ISS, éphémérides) |
-| `log` + `env_logger` | Journalisation |
-
-### 4.4 Structure du projet
+#### Data displayed
 
 ```
-astrofeed/
+[arc graphic — sun path across the sky]
+Daylight: 12 h 30 min
+Rise: 06:42  |  Set: 19:12
+Altitude: -7.85°
+Direction: 282.36° (WNW)
+```
+
+| Field | Description |
+|-------|-------------|
+| **Arc graphic** | Semi-circular arc representing the Sun's path across the sky; the portion already traversed is highlighted in golden amber; a dot marks the current Sun position |
+| **Daylight** | Total duration of daylight for the day (hours and minutes); "Does not rise" under polar night |
+| **Rise / Set** | Local sunrise and sunset times (HH:MM); "Does not rise" / `--:--` under polar conditions |
+| **Altitude** | Current solar altitude above (or below) the local horizon in degrees, two decimal places; negative when the Sun is below the horizon |
+| **Direction** | Current solar azimuth in degrees (0° = North, clockwise), two decimal places, followed by the 16-point compass abbreviation (e.g. `WNW`), localised for each language |
+
+#### Calculation method
+
+All calculations are performed in `src/utils/astro.rs` (`sun_ephemeris` + `calculate_sun_times`), accurate to ~0.01°, verified against NOAA Solar Calculator reference data.
+
+**Step 1 — Solar ephemeris** (`sun_ephemeris(dt)`):
+
+| Intermediate | Formula |
+|---|---|
+| Julian centuries | T = (JD − 2 451 545.0) / 36 525 |
+| Geometric mean longitude | L₀ = 280.46646 + 36 000.76983·T + 0.0003032·T² (mod 360°) |
+| Mean anomaly | M = 357.52911 + 35 999.05029·T − 0.0001537·T² (mod 360°) |
+| Equation of centre | C = (1.914602 − 0.004817·T − 0.000014·T²)·sin M + (0.019993 − 0.000101·T)·sin 2M + 0.000289·sin 3M |
+| True longitude | ☉ = L₀ + C |
+| Apparent longitude | λ = ☉ − 0.00569° − 0.00478°·sin Ω, where Ω = 125.04 − 1934.136·T |
+| Obliquity (corrected) | ε = ε₀ + 0.00256°·cos Ω |
+| Declination | δ = arcsin(sin ε · sin λ) |
+| Eccentricity | e = 0.016708634 − 0.000042037·T − 0.0000001267·T² |
+| Equation of Time | EoT (min) = 4° · [y·sin 2L₀ − 2e·sin M + 4ey·sin M·cos 2L₀ − ½y²·sin 4L₀ − 1.25e²·sin 2M], y = tan²(ε/2) |
+
+**Step 2 — Solar noon & rise/set** (`calculate_sun_times(lat, lon, now_local)`):
+
+- **Solar noon** (UTC h) = 12 − lon/15 − EoT/60
+- **Half-day hour angle**: cos(HA₀) = (cos 90.833° − sin lat · sin δ) / (cos lat · cos δ); 90.833° = atmospheric refraction (0.567°) + solar disc radius (0.267°)
+- **Sunrise** = solar noon − HA₀/15 h; **Sunset** = solar noon + HA₀/15 h (both converted to local time)
+
+**Step 3 — Current altitude & azimuth**:
+
+- **Hour angle**: HA = (t_utc − solar_noon) × 15° (positive when Sun is west of meridian)
+- **Altitude**: sin(alt) = sin(lat)·sin(δ) + cos(lat)·cos(δ)·cos(HA)
+- **Azimuth**: cos(Az) = (sin(δ) − sin(lat)·sin(alt)) / (cos(lat)·cos(alt)); if HA > 0° → Az = 360° − Az_raw, else Az = Az_raw
+- **cos(alt)** computed as √(1 − sin²(alt)) for numerical stability near the horizon
+
+**Accuracy** (verified vs. reference data for Attiches, France, 17 Sep 2026):
+
+| Value | Reference | Computed | Δ |
+|---|---|---|---|
+| Sunrise (CEST) | 07:26 | 07:27 | 1 min |
+| Sunset (CEST) | 19:57 | 19:57 | 0 min |
+| Altitude | −11.10° | −11.08° | 0.02° |
+| Azimuth | 287.14° | 287.12° | 0.02° |
+
+- **Source**: NOAA Solar Calculator algorithms — <https://gml.noaa.gov/grad/solcalc/>
+
+#### Polar conditions
+
+When the Sun never rises (polar night, cos(HA₀) > 1) or never sets (midnight sun, cos(HA₀) < −1), `sunrise_local` and `sunset_local` are `None`; the Daylight field shows "Does not rise" and the arc graphic places the Sun below the horizon line.
+
+---
+
+### 3.7 Moon Widget
+
+The Moon widget appears immediately below the Sun widget in the left sidebar whenever an active position is set. It is also recomputed every second.
+
+#### Data displayed
+
+```
+🌒 Waxing Crescent
+Illumination: 40.0%
+Rise: 09:14  |  Set: 22:47
+Altitude: 10.4° (above horizon)
+Direction: 17.5° (NNE)
+```
+
+| Field | Description |
+|-------|-------------|
+| **Disc graphic** | Vector rendering of the lunar disc showing the illuminated crescent/gibbous geometry, updated in real time |
+| **Phase name** | Localised name of the current phase (e.g. "Waxing Crescent", "Pleine Lune") |
+| **Illumination** | Percentage of the lunar disc that is illuminated (one decimal place) |
+| **Rise / Set** | Local time of moonrise and moonset (HH:MM); `--:--` or "Does not rise" under polar conditions |
+| **Altitude** | Current altitude of the Moon above or below the local horizon in degrees, with an "above/below horizon" qualifier |
+| **Direction** | Current azimuth in degrees (0° = North, clockwise) followed by the 16-point compass abbreviation (N, NNE, NE, …, NNW), localised (O/SO/… in French, Spanish, Portuguese, Italian) |
+
+#### Calculation method
+
+- **Phase & illumination**: Julian Day delta from a known New Moon epoch (JD 2451549.760 = 6 Jan 2000 18:14 UTC); synodic month = 29.53058867 days; illumination = `(1 − cos(2π·phase)) / 2`.
+- **Lunar ecliptic coordinates**: Jean Meeus *Astronomical Algorithms* ch. 47 — 13 leading longitude terms + 10 latitude terms from the fundamental arguments L′, D, M, M′, F.
+- **Equatorial coordinates**: ecliptic→equatorial rotation using the mean obliquity of the ecliptic (23.439° − 0.013°·T).
+- **Horizontal coordinates** (altitude, azimuth): equatorial→horizontal via Local Sidereal Time (Greenwich MST + observer longitude), standard hour-angle formula.
+- **Moonrise / Moonset**: iterative step-search at 10-minute resolution over a 48-hour window from the preceding midnight UTC; crossing times are refined by linear interpolation.
+
+#### Polar conditions
+
+When the Moon stays permanently above or below the horizon, the rise/set fields display `--:--` or "Does not rise" respectively.
+
+---
+
+### 3.8 Event Display
+
+- **List view**: chronological list with category icon, title, localised date/time, sky position (Az/El), and frequency range for radio events.
+- **Dimming**: past events (end time < now) are displayed at reduced opacity.
+- **Filters** (sidebar):
+  - By category: Astronomical 🔭 / Radio-Astronomical 📡 / All
+
+### 3.9 Settings
+
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| Theme | `Dark` / `Light` / `Teal` / `Pink` / `Navy` | `Dark` |
+| Language | `fr` / `en` / `es` / `pt` / `de` / `it` | System locale |
+| Update frequency | `OnStartup` / `Weekly` / `Monthly` | `OnStartup` |
+| Active position | Any registered position | First created |
+
+All settings are persisted to `{config_dir}/cosmic-beacon/cosmic_beacon_config.toml` (TOML format) and restored on the next launch.
+
+---
+
+## 4. Internationalisation
+
+### 4.1 Supported Languages
+
+| Code | Language |
+|------|----------|
+| `fr` | French |
+| `en` | English |
+| `es` | Spanish |
+| `pt` | Portuguese |
+| `de` | German |
+| `it` | Italian |
+
+Language detection reads `LANG` / `LANGUAGE` / `LC_ALL` environment variables on startup. The selected language is saved in settings and takes effect immediately (UI strings, date/time formats, moon phase names, cardinal directions).
+
+### 4.2 Date/Time Formatting
+
+All displayed dates and times are formatted according to the active language:
+
+| Language | Date format example |
+|----------|---------------------|
+| fr / es / pt / it | `Lundi 14 janvier 2025` |
+| en | `Monday, January 14 2025` |
+| de | `Montag, 14. Januar 2025` |
+
+Event timestamps always include the UTC indicator (`HH:MM UTC`).
+
+---
+
+## 5. Visual Themes
+
+Five themes are available, inspired by classic X11 window manager colour palettes:
+
+| Theme | Base style | Background |
+|-------|-----------|------------|
+| **Dark** | egui default dark | Very dark grey |
+| **Light** | Softened off-white | Warm light grey |
+| **Teal** | CDE / Motif X11 | Deep teal (`#006060`) |
+| **Pink** | SGI Irix / X11 mauve | Deep magenta (`#50003c`) |
+| **Navy** | FVWM / TWM navy | Deep navy blue (`#0a1446`) |
+
+All coloured themes derive from `Visuals::dark()` to ensure readable contrast. The selection is applied immediately and persisted.
+
+---
+
+## 6. Technical Architecture
+
+### 6.1 Language & Platform
+
+| Item | Choice |
+|------|--------|
+| Language | **Rust** (edition 2021) |
+| Targets | `x86_64-unknown-linux-gnu`, `x86_64-pc-windows-msvc` |
+| Toolchain | `stable` ≥ 1.75 |
+
+### 6.2 UI Framework
+
+**egui 0.27 / eframe 0.27** — immediate-mode, no system dependencies beyond OpenGL/wgpu, cross-platform.
+
+### 6.3 Key Crates
+
+| Crate | Purpose |
+|-------|---------|
+| `eframe` / `egui` | UI framework |
+| `tokio` (full features) | Async runtime for background source fetches |
+| `reqwest` | Async HTTP client (rustls TLS) |
+| `sgp4` | SGP4 orbital mechanics (ISS pass prediction) |
+| `quick-xml` | XML / RSS parsing (ARISS feed) |
+| `serde` / `serde_json` / `toml` | Serialisation |
+| `chrono` | Date/time handling |
+| `uuid` | Unique event identifiers |
+| `dirs` | Cross-platform config/data directories |
+| `log` + `env_logger` | Logging |
+
+### 6.4 Project Structure
+
+```
+cosmic-beacon/
 ├── Cargo.toml
 ├── Cargo.lock
 ├── README.md
 ├── SPEC.md
-├── src/
-│   ├── main.rs               # Point d'entrée, init UI
-│   ├── app.rs                # État global de l'application (App struct)
-│   ├── ui/
-│   │   ├── mod.rs
-│   │   ├── main_window.rs    # Fenêtre principale, layout
-│   │   ├── event_list.rs     # Vue liste des événements
-│   │   ├── event_detail.rs   # Vue détail d'un événement
-│   │   ├── positions.rs      # Gestion des positions
-│   │   ├── settings.rs       # Panneau de paramétrage
-│   │   └── sync_report.rs    # Rapport de synchronisation des sources
-│   ├── model/
-│   │   ├── mod.rs
-│   │   ├── event.rs          # Structs Event, SkyCoord, EventType, Category
-│   │   └── position.rs       # Struct Position, PositionIcon
-│   ├── sources/
-│   │   ├── mod.rs
-│   │   ├── manager.rs        # Orchestration des sources, rapport d'état
-│   │   ├── iss_passes.rs     # Source : passes ISS
-│   │   ├── planets.rs        # Source : planètes visibles
-│   │   ├── meteors.rs        # Source : pluies de météores
-│   │   ├── comets.rs         # Source : comètes
-│   │   └── iss_radio.rs      # Source : contacts radio ARISS
-│   ├── config/
-│   │   ├── mod.rs
-│   │   └── settings.rs       # Lecture/écriture TOML de la config
-│   └── utils/
-│       ├── mod.rs
-│       └── geo.rs            # Conversion coordonnées, calculs astronomiques
-├── assets/
-│   └── icons/                # Icônes SVG/PNG embarquées
-└── tests/
-    └── integration/
+└── src/
+    ├── main.rs                # Entry point, Tokio runtime init, eframe run
+    ├── app.rs                 # AstroFeedApp struct, global state, eframe::App impl
+    ├── i18n.rs                # Lang enum, t() translation fn, date/time helpers
+    ├── ui/
+    │   ├── mod.rs
+    │   ├── main_window.rs     # Main layout: menu, status bar, sidebar, central panel
+    │   ├── event_list.rs      # Event list + temporal navigation bar
+    │   ├── event_detail.rs    # Event detail view (stub)
+    │   ├── positions.rs       # Position management window
+    │   ├── settings.rs        # Settings window (theme, language, update freq)
+    │   ├── sidebar_info.rs    # Clock, sun arc widget, moon phase widget
+    │   ├── sync_report.rs     # Sync report window
+    │   ├── about.rs           # About window
+    │   └── theme.rs           # 5 Visuals definitions
+    ├── model/
+    │   ├── mod.rs
+    │   ├── event.rs           # Event, SkyCoord, EventType, Category
+    │   └── position.rs        # Position, PositionIcon
+    ├── sources/
+    │   ├── mod.rs
+    │   ├── manager.rs         # SourceManager, SyncReport, SyncStatus
+    │   ├── iss_passes.rs      # ISS passes (CelesTrak TLE + SGP4)
+    │   ├── planets.rs         # Planets (JPL Horizons)
+    │   ├── meteors.rs         # Meteor showers (IMO)
+    │   ├── comets.rs          # Comets (MPC)
+    │   ├── solar_transit.rs   # Solar meridian transit (local calculation)
+    │   ├── iss_radio.rs       # ISS radio contacts (ARISS RSS)
+    │   └── milky_way.rs       # Galactic Centre meridian transit (local calculation)
+    ├── config/
+    │   ├── mod.rs
+    │   └── settings.rs        # Settings struct, Theme enum, TOML persistence
+    └── utils/
+        ├── mod.rs
+        ├── astro.rs           # Sun times, moon phase calculations
+        └── geo.rs             # Coordinate helpers
 ```
 
-### 4.5 Persistance
-
-- **Configuration** : fichier `config.toml` dans le répertoire de configuration utilisateur (`dirs::config_dir()`).
-- **Cache événements** : fichier `events_cache.json` dans le répertoire de données utilisateur (`dirs::data_dir()`).
-- **Log de synchronisation** : `sync_log.json` dans le même répertoire de données.
-
-### 4.6 Flux de données
+### 6.5 Data Flow
 
 ```
-┌─────────────────────────────────────────────────┐
-│                   UI Thread (egui)              │
-│  EventListView ◄──── AppState ◄──── EventStore  │
-└────────────────────────────┬────────────────────┘
-                             │ channel (mpsc)
+┌──────────────────────────────────────────────────┐
+│               UI Thread (egui/eframe)            │
+│  EventList ◄─── AstroFeedApp ◄─── Arc<Mutex<>>  │
+└────────────────────────────┬─────────────────────┘
+                             │  Arc<Mutex<Vec<Event>>>
                              ▼
-┌─────────────────────────────────────────────────┐
-│              Background Task (tokio)            │
-│  SourceManager → [Source1, Source2, …]          │
-│       │                                         │
-│       └─► HTTP requests → parse → normalize     │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│            Background Tasks (tokio::spawn)       │
+│  SourceManager ──► tokio::join! [               │
+│      iss_passes, planets, meteors, comets,       │
+│      solar_transit, iss_radio, milky_way         │
+│  ] ──► normalize ──► sort by start_time          │
+└──────────────────────────────────────────────────┘
 ```
 
----
+### 6.6 Persistence
 
-## 5. Expérience utilisateur
+| Data | Location |
+|------|----------|
+| Settings (TOML) | `{config_dir}/cosmic-beacon/cosmic_beacon_config.toml` |
 
-### 5.1 Thèmes
-
-| Thème | Palette de base |
-|-------|----------------|
-| **Dark** | Fond `#1a1a2e`, surfaces `#16213e`, texte `#e0e0e0`, accent `#0f3460` |
-| **Light** | Fond `#ffffff`, surfaces `#f0f4f8`, texte `#1a1a2e`, accent `#3b82f6` |
-
-Le thème sombre est le **défaut** pour ne pas perturber une session d'observation nocturne.
-
-### 5.2 Raccourcis et interactions
-
-| Action | Déclencheur |
-|--------|-------------|
-| Rafraîchir les événements | Bouton 🔄 dans la barre d'outils + menu `Fichier > Rafraîchir` |
-| Changer de position active | Sélecteur dans la barre du haut |
-| Ouvrir les paramètres | Menu `Edition > Paramètres` |
-| Ouvrir le rapport de sync | Icône de statut dans la barre d'état (bas de fenêtre) |
+No embedded database is required. Events are recomputed from sources on each refresh cycle.
 
 ---
 
-## 6. Contraintes et exigences non fonctionnelles
+## 7. Non-Functional Requirements
 
-| Exigence | Détail |
-|----------|--------|
-| **Résilience réseau** | Toute source indisponible ne bloque ni ne crashe l'application |
-| **Performance UI** | L'UI reste fluide (≥ 30 fps) pendant les appels réseau |
-| **Portabilité** | Compilation sans modification sur Linux et Windows |
-| **Stockage minimal** | Pas de base de données embarquée lourde (SQLite non requis initialement) |
-| **Accessibilité** | Taille de police configurable (futur) |
-| **Sécurité** | Aucune donnée personnelle transmise aux sources externes au-delà de lat/lon |
-
----
-
-## 7. Roadmap / Jalons
-
-| Jalon | Contenu |
-|-------|---------|
-| **M0 — Scaffolding** | Projet Rust, structure de fichiers, modèles de données, UI squelette |
-| **M1 — Positions** | CRUD positions, sélection active, persistance TOML |
-| **M2 — Source ISS** | Intégration passes ISS (Open-Notify ou N2YO), affichage liste |
-| **M3 — Autres sources** | Planètes (JPL Horizons), météores (IMO), comètes (MPC) |
-| **M4 — Radioastronomie** | Sources ARISS, transit solaire, comètes radio |
-| **M5 — Paramétrage** | Thèmes, fréquence de MAJ, rapport de synchronisation complet |
-| **M6 — Polish** | Filtres, vue détail enrichie, icônes, packaging |
+| Requirement | Detail |
+|-------------|--------|
+| **Network resilience** | Any unavailable source produces an error entry in the sync report; it never crashes or blocks the app |
+| **UI performance** | UI remains fluid (≥ 30 fps) during background network calls |
+| **Portability** | Compiles without modification on Linux and Windows |
+| **Minimal storage** | No heavy embedded database; TOML config only |
+| **Privacy** | Only lat/lon coordinates are sent to external APIs; no personal data |
 
 ---
 
-## 8. Questions ouvertes
+## 8. Roadmap
+
+| Milestone | Content | Status |
+|-----------|---------|--------|
+| **M0 — Scaffolding** | Project structure, data models, skeleton UI | ✅ Done |
+| **M1 — Positions** | Position CRUD, active selection, TOML persistence | ✅ Done |
+| **M2 — ISS source** | ISS pass prediction via CelesTrak TLE + SGP4 | ✅ Done |
+| **M3 — More sources** | Planets (JPL), meteors (IMO), comets (MPC) | ✅ Done |
+| **M4 — Radio astronomy** | ARISS contacts, solar transit, Milky Way transit | ✅ Done |
+| **M5 — Settings & polish** | 5 themes, sync report, sidebar ephemeris, app icon | ✅ Done |
+| **M6 — i18n & UX** | 6 languages, temporal navigation, stable window IDs | ✅ Done (v0.2.0) |
+| **M7 — Future** | Sky map view, event detail panel, packaging (AppImage / MSI) | 🔲 Planned |
+
+---
+
+## 9. Open Questions
 
 | # | Question |
 |---|----------|
-| Q1 | Quel framework UI retenir définitivement (egui vs Slint) ? |
-| Q2 | Utiliser un cache SQLite pour de meilleures performances à terme ? |
-| Q3 | Ajouter une carte du ciel (vue polaire) en vue future ? |
-| Q4 | Internationalisation (FR/EN) dès le départ ou ultérieurement ? |
-| Q5 | Packaging : AppImage (Linux), NSIS/MSI (Windows) ? |
+| Q1 | Add a polar sky map view (azimuthal projection) for a future minor release? |
+| Q2 | Package as AppImage (Linux) and NSIS/MSI installer (Windows)? |
+| Q3 | Add a SQLite event cache for faster restarts when sources are slow? |
+| Q4 | Expose an optional HTTP/WebSocket API for integration with external tools? |
 
 ---
 
-*Fin du document de spécification — AstroFeed v0.1.0-draft*
+*End of specification — Cosmic Beacon v0.2.0*

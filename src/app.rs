@@ -14,8 +14,18 @@ pub struct AstroFeedApp {
     pub show_sync_report: bool,
     pub show_settings: bool,
     pub show_positions: bool,
+    pub show_about: bool,
     pub category_filter: CategoryFilter,
+    /// The point in time the event list is focused on. None = current time (live).
+    pub event_time_cursor: Option<chrono::DateTime<chrono::Utc>>,
+    /// Raw text in the date/time navigation field.
+    pub nav_date_input: String,
+    /// Set to true to request the scroll area to jump to the cursor position on the next frame.
+    pub scroll_to_now: bool,
     source_manager: SourceManager,
+    /// Snapshot of `settings.disabled_sources` taken when the settings window opens.
+    /// Used to restore the value if the window is closed without saving.
+    pub settings_sources_snapshot: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -28,16 +38,19 @@ pub enum CategoryFilter {
 
 impl AstroFeedApp {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Configure font fallbacks so system emojis (Segoe UI Emoji / Apple Color Emoji) render properly
+        Self::configure_fonts(&cc.egui_ctx);
+
         let settings = Settings::load();
 
-        // Apply theme
-        if settings.dark_mode {
-            cc.egui_ctx.set_visuals(egui::Visuals::dark());
-        } else {
-            cc.egui_ctx.set_visuals(egui::Visuals::light());
-        }
+        // Apply theme (dark or softened light mode)
+        crate::ui::theme::apply_theme(&cc.egui_ctx, &settings.theme);
 
         let positions = settings.positions.clone();
+        // Restore last active index, clamped to valid range
+        let active_position_index = settings.active_position_index
+            .min(positions.len().saturating_sub(1));
+
         let events = Arc::new(Mutex::new(Vec::new()));
         let sync_report = Arc::new(Mutex::new(Vec::new()));
 
@@ -50,14 +63,19 @@ impl AstroFeedApp {
         let mut app = Self {
             settings,
             positions,
-            active_position_index: 0,
+            active_position_index,
             events,
             sync_report,
             show_sync_report: false,
             show_settings: false,
             show_positions: false,
+            show_about: false,
             category_filter: CategoryFilter::All,
+            event_time_cursor: None,
+            nav_date_input: String::new(),
+            scroll_to_now: true,
             source_manager,
+            settings_sources_snapshot: None,
         };
 
         // Trigger initial refresh if configured
@@ -71,7 +89,11 @@ impl AstroFeedApp {
 
     pub fn trigger_refresh(&mut self) {
         if let Some(pos) = self.active_position().cloned() {
-            self.source_manager.refresh(pos);
+            let disabled: std::collections::HashSet<String> =
+                self.settings.disabled_sources.iter().cloned().collect();
+            self.source_manager.refresh(pos, disabled);
+            // After a refresh the list will be rebuilt; scroll back to "now"
+            self.scroll_to_now = true;
         }
     }
 
@@ -90,6 +112,33 @@ impl AstroFeedApp {
                 }
             }
         }
+    }
+
+    /// Try loading system emoji fonts (e.g. Segoe UI Emoji on Windows) as fallback fonts in egui.
+    fn configure_fonts(ctx: &egui::Context) {
+        let mut fonts = egui::FontDefinitions::default();
+
+        // Try standard Windows Segoe UI Emoji font path
+        #[cfg(target_os = "windows")]
+        {
+            let emoji_font_path = r"C:\Windows\Fonts\seguiemj.ttf";
+            if let Ok(font_data) = std::fs::read(emoji_font_path) {
+                fonts.font_data.insert(
+                    "seguiemj".to_owned(),
+                    egui::FontData::from_owned(font_data),
+                );
+                // Add to Proportional family fallbacks
+                if let Some(family) = fonts.families.get_mut(&egui::FontFamily::Proportional) {
+                    family.push("seguiemj".to_owned());
+                }
+                // Add to Monospace family fallbacks
+                if let Some(family) = fonts.families.get_mut(&egui::FontFamily::Monospace) {
+                    family.push("seguiemj".to_owned());
+                }
+            }
+        }
+
+        ctx.set_fonts(fonts);
     }
 }
 
